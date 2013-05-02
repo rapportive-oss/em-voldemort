@@ -93,6 +93,19 @@ describe EM::Voldemort::Connection do
     end
   end
 
+  it 'should disconnect and reconnect if protocol negotiation times out' do
+    expect_connect do |handler|
+      handler.should_receive(:send_data).with('pb0')
+      EM.next_tick do
+        later(2) # no timeout after only 2 seconds
+        handler.should_receive(:close_connection) { handler.unbind }
+        EM.should_receive(:connect) { EM.stop }
+        later(4) # 6 seconds after sending protocol request, give up
+      end
+    end
+    EM.run { @connection.connect }
+  end
+
   it 'should try reconnecting after a delay if the connection is closed' do
     setup_connection do |handler|
       later(16) # sit idle for a while
@@ -146,6 +159,21 @@ describe EM::Voldemort::Connection do
         @response2.should == 'response2'
         response.should == 'response3'
         EM.stop
+      end
+    end
+    EM.run { @connection.connect }
+  end
+
+  it 'should queue up requests made while protocol negotiation is in progress' do
+    expect_connect do |handler|
+      handler.should_receive(:send_data).with('pb0')
+      EM.next_tick do
+        @connection.send_request('request1')
+        later(2)
+        EM.next_tick do
+          handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')) { EM.stop }
+          handler.receive_data('ok')
+        end
       end
     end
     EM.run { @connection.connect }

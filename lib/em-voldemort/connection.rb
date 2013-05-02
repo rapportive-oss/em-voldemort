@@ -107,6 +107,7 @@ module EM::Voldemort
         @connection = connection
         @state = :connecting
         @in_flight = EM::DefaultDeferrable.new
+        @last_request = Time.now
         @request_queue = []
       end
 
@@ -142,8 +143,7 @@ module EM::Voldemort
         connection.logger.info "Connected to Voldemort node at #{connection.host}:#{connection.port}"
         send_protocol_proposal(connection.protocol)
         in_flight.errback do |response|
-          connection.logger.warn "Voldemort node rejected protocol #{connection.protocol} with response #{response.inspect}"
-          close_connection
+          connection.logger.warn "Voldemort protocol #{connection.protocol} not accepted: #{response.inspect}"
         end
       end
 
@@ -158,7 +158,8 @@ module EM::Voldemort
             deferrable.succeed
             send_next_request
           else
-            deferrable.fail(data)
+            deferrable.fail("server response: #{data.inspect}")
+            close_connection
           end
 
         when :request
@@ -196,7 +197,7 @@ module EM::Voldemort
         @state = :disconnected
         deferrable = @in_flight
         @in_flight = nil
-        deferrable.fail if deferrable
+        deferrable.fail('connection closed') if deferrable
         connection.connection_closed(self, reason)
       end
     end
