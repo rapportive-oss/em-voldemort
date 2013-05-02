@@ -37,6 +37,7 @@ module EM::Voldemort
     def close
       return @closing_deferrable if @closing_deferrable
       @closing_deferrable = EM::DefaultDeferrable.new
+      @timer.cancel
 
       if @handler
         @handler.close_gracefully
