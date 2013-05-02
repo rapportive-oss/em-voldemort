@@ -55,25 +55,59 @@ describe EM::Voldemort::Cluster do
     "<cluster><name>example-cluster</name>#{servers}</cluster>"
   end
 
-  def expect_bootstrap(partitions_by_host={})
+  def stores_xml(properties_by_name={})
+    stores = ''
+    properties_by_name.each_pair do |name, properties|
+      stores << '<store>'
+      stores << "<name>#{name}</name>"
+      stores << '<persistence>read-only</persistence>'
+      stores << '<routing-strategy>consistent-routing</routing-strategy>'
+      stores << '<routing>client</routing>'
+      stores << '<replication-factor>2</replication-factor>'
+      stores << '<required-reads>1</required-reads>'
+      stores << '<required-writes>1</required-writes>'
+      stores << '<key-serializer>'
+      stores << "<type>#{properties[:key_type]}</type>"
+      stores << "<schema-info version=\"0\">#{properties[:key_schema]}</schema-info>"
+      stores << '</key-serializer>'
+      stores << '<value-serializer>'
+      stores << "<type>#{properties[:value_type]}</type>"
+      properties[:value_schemas].each_pair do |version, schema|
+        stores << "<schema-info version=\"#{version}\">#{schema}</schema-info>"
+      end
+      stores << "<compression><type>#{properties[:compression]}</type></compression>"
+      stores << '</value-serializer>'
+      stores << '</store>'
+    end
+    "<stores>#{stores}</stores>"
+  end
+
+  def expect_bootstrap(cluster_info={}, stores_info={})
     @bootstrap_connection = double('bootstrap connection')
     EM::Voldemort::Connection.should_receive(:new).
       with(:host => 'localhost', :port => 6666, :logger => @logger).
       and_return(@bootstrap_connection)
 
-    metadata_request = EM::DefaultDeferrable.new
-    @bootstrap_connection.should_receive(:send_request).
-      with(request('metadata', 'cluster.xml')).
-      and_return(metadata_request)
-    @bootstrap_connection.should_receive(:close) { yield if block_given? }
-
-    EM.next_tick do
-      metadata_request.succeed(success_response(cluster_xml(partitions_by_host)))
+    cluster_request = EM::DefaultDeferrable.new
+    @bootstrap_connection.should_receive(:send_request).with(request('metadata', 'cluster.xml')) do
+      EM.next_tick do
+        stores_request = EM::DefaultDeferrable.new
+        @bootstrap_connection.should_receive(:send_request).with(request('metadata', 'stores.xml')) do
+          EM.next_tick do
+            stores_request.succeed(success_response(stores_xml(stores_info)))
+          end
+          stores_request
+        end
+        cluster_request.succeed(success_response(cluster_xml(cluster_info)))
+      end
+      cluster_request
     end
+
+    @bootstrap_connection.should_receive(:close) { yield if block_given? }
   end
 
 
-  it 'should request cluster.xml when bootstrapping' do
+  it 'should request cluster.xml and stores.xml when bootstrapping' do
     expect_bootstrap
     EM.run { @cluster.connect.callback { EM.stop } }
   end

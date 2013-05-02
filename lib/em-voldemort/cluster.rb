@@ -2,8 +2,7 @@ module EM::Voldemort
   # A client for a Voldemort cluster. The cluster is initialized by giving the hostname and port of
   # one of its nodes, and the other nodes are autodiscovered.
   #
-  # TODO: The cluster should automatically route requests to the right node, and transparently
-  # reconnect on failure.
+  # TODO: The cluster should automatically route requests to the right node.
   class Cluster
     include Protocol
 
@@ -12,12 +11,14 @@ module EM::Voldemort
     RETRY_BOOTSTRAP_PERIOD = 10 # seconds
     METADATA_STORE_NAME = 'metadata'.freeze
     CLUSTER_INFO_KEY = 'cluster.xml'.freeze
+    STORES_INFO_KEY = 'stores.xml'.freeze
 
     def initialize(options={})
       @bootstrap_host = options[:host] or raise "#{self.class.name} requires :host"
       @bootstrap_port = options[:port] or raise "#{self.class.name} requires :port"
       @logger = options[:logger] || Logger.new($stdout)
       @bootstrap_state = :not_started
+      @stores = {}
     end
 
     # Bootstraps the cluster (discovers all cluster nodes and metadata by connecting to the one node
@@ -39,6 +40,11 @@ module EM::Voldemort
       end
     end
 
+    # Returns a {Store} object configured for accessing a particular store on the cluster.
+    def store(store_name)
+      @stores[store_name.to_s] ||= Store.new(self, store_name)
+    end
+
     private
 
     def setup_bootstrap_timer
@@ -48,14 +54,27 @@ module EM::Voldemort
     def start_bootstrap
       @bootstrap_state = :started
       @bootstrap_conn = Connection.new(:host => bootstrap_host, :port => bootstrap_port, :logger => logger)
+      @bootstrap = EM::DefaultDeferrable.new
 
-      @bootstrap = get_from_connection(@bootstrap_conn, METADATA_STORE_NAME, CLUSTER_INFO_KEY)
-      @bootstrap.callback do |cluster_xml|
-        parse_cluster_info(cluster_xml)
-        finish_bootstrap
+      cluster_req = get_from_connection(@bootstrap_conn, METADATA_STORE_NAME, CLUSTER_INFO_KEY)
+
+      cluster_req.callback do |cluster_xml|
+        if parse_cluster_info(cluster_xml) == :cluster_info_ok
+          stores_req = get_from_connection(@bootstrap_conn, METADATA_STORE_NAME, STORES_INFO_KEY)
+          stores_req.callback do |stores_xml|
+            parse_stores_info(stores_xml)
+            finish_bootstrap
+          end
+          stores_req.errback do |error|
+            logger.warn "Could not load Voldemort's stores.xml: #{error}"
+            @bootstrap_state = :failed
+            finish_bootstrap
+          end
+        end
       end
-      @bootstrap.errback do |error|
-        logger.warn "Could not bootstrap Voldemort cluster: #{error}"
+
+      cluster_req.errback do |error|
+        logger.warn "Could not load Voldemort's cluster.xml: #{error}"
         @bootstrap_state = :failed
         finish_bootstrap
       end
@@ -64,10 +83,14 @@ module EM::Voldemort
     def finish_bootstrap
       @bootstrap_conn.close
       @bootstrap_conn = nil
+      deferrable = @bootstrap
       @bootstrap = nil
       if @bootstrap_state == :complete
         @bootstrap_timer.cancel
         @bootstrap_timer = nil
+        deferrable.succeed
+      else
+        deferrable.fail
       end
     end
 
@@ -78,7 +101,7 @@ module EM::Voldemort
       connect
       request = EM::DefaultDeferrable.new
       case @bootstrap_state
-      when :started
+      when :started, :cluster_info_ok
         @bootstrap.callback { yield request }
         @bootstrap.errback { request.fail(ServerError.new('Could not bootstrap Voldemort cluster')) }
       when :complete
@@ -110,9 +133,22 @@ module EM::Voldemort
           @nodes_by_partition[partition] << connection
         end
       end
-      @bootstrap_state = :complete
+      @bootstrap_state = :cluster_info_ok
     rescue => e
       logger.warn "Error processing cluster.xml: #{e}"
+      @bootstrap_state = :failed
+    end
+
+    def parse_stores_info(stores_xml)
+      doc = Nokogiri::XML(stores_xml)
+      doc.xpath('/stores/store').each do |store|
+        store_name = store.xpath('name').text
+        @stores[store_name] ||= Store.new(self, store_name)
+        @stores[store_name].load_config(store)
+      end
+      @bootstrap_state = :complete
+    rescue => e
+      logger.warn "Error processing stores.xml: #{e}"
       @bootstrap_state = :failed
     end
 
