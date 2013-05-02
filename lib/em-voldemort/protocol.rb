@@ -13,8 +13,10 @@ module EM::Voldemort
 
     def get_response(bytes)
       response = Protobuf::GetResponse.decode(bytes.dup)
-      raise "GetResponse error #{response.error.error_code}: #{response.error.error_message}" if response.error
-      raise "GetResponse contained no values" if response.versioned.nil? || response.versioned.empty?
+      if response.error
+        raise ClientError, "GetResponse error #{response.error.error_code}: #{response.error.error_message}"
+      end
+      raise KeyNotFound if response.versioned.nil? || response.versioned.empty?
       response.versioned.max{|a, b| a.version.timestamp <=> b.version.timestamp }.value
     end
   end

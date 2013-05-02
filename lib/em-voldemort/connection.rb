@@ -10,8 +10,8 @@ module EM::Voldemort
     REQUEST_TIMEOUT = 5 # If a request takes longer than 5 seconds, close the connection
 
     def initialize(options={})
-      @host = options[:host] or raise "#{self.class.name} requires :host"
-      @port = options[:port] or raise "#{self.class.name} requires :port"
+      @host = options[:host] or raise ArgumentError, "#{self.class.name} requires :host"
+      @port = options[:port] or raise ArgumentError, "#{self.class.name} requires :port"
       @protocol = options[:protocol] || DEFAULT_PROTOCOL
       @logger = options[:logger] || Logger.new($stdout)
       @timer = setup_status_check_timer(&method(:status_check))
@@ -186,7 +186,7 @@ module EM::Voldemort
           in_flight.callback { close_gracefully }
           in_flight.errback  { close_gracefully }
         else
-          @request_queue.each {|request, deferrable| deferrable.fail('shutdown requested') }
+          @request_queue.each {|request, deferrable| deferrable.fail(ServerError.new('shutdown requested')) }
           @request_queue = []
           close_connection
         end
@@ -197,8 +197,8 @@ module EM::Voldemort
         @state = :disconnected
         deferrable = @in_flight
         @in_flight = nil
-        deferrable.fail('connection closed') if deferrable
-        @request_queue.each {|request, deferrable| deferrable.fail('connection closed') }
+        deferrable.fail(ServerError.new('connection closed')) if deferrable
+        @request_queue.each {|request, deferrable| deferrable.fail(ServerError.new('connection closed')) }
         @request_queue = []
         connection.connection_closed(self, reason)
       end
@@ -215,7 +215,9 @@ module EM::Voldemort
       end
 
       def enqueue_request(request)
-        EM::DefaultDeferrable.new.tap {|deferrable| deferrable.fail('Connection to Voldemort node closed') }
+        EM::DefaultDeferrable.new.tap do |deferrable|
+          deferrable.fail(ServerError.new('Connection to Voldemort node closed'))
+        end
       end
 
       def close_gracefully
