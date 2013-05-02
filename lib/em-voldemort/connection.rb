@@ -198,6 +198,8 @@ module EM::Voldemort
         deferrable = @in_flight
         @in_flight = nil
         deferrable.fail('connection closed') if deferrable
+        @request_queue.each {|request, deferrable| deferrable.fail('connection closed') }
+        @request_queue = []
         connection.connection_closed(self, reason)
       end
     end

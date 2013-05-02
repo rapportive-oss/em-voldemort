@@ -223,6 +223,22 @@ describe EM::Voldemort::Connection do
     EM.run { @connection.connect }
   end
 
+  it 'should fail outstanding requests when the connection is closed' do
+    setup_connection do |handler|
+      handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')).once do
+        EM.next_tick do
+          handler.unbind
+          @error1.should be_true
+          @error2.should be_true
+          EM.stop
+        end
+      end
+      @connection.send_request('request1').errback { @error1 = true }
+      @connection.send_request('request2').errback { @error2 = true }
+    end
+    EM.run { @connection.connect }
+  end
+
   it 'should handle a shutdown request while in error state' do
     EM.run do
       EM.should_receive(:connect).once.and_raise(EventMachine::ConnectionError, 'unable to resolve server address')
