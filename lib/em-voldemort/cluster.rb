@@ -18,15 +18,15 @@ module EM::Voldemort
       @bootstrap_port = options[:port] or raise "#{self.class.name} requires :port"
       @logger = options[:logger] || Logger.new($stdout)
       @bootstrap_state = :not_started
-      @bootstrap_timer = setup_bootstrap_timer do
-        start_bootstrap if @bootstrap_state == :not_started || @bootstrap_state == :failed
-      end
     end
 
     # Bootstraps the cluster (discovers all cluster nodes and metadata by connecting to the one node
     # that was specified). Calling #connect is optional, since it also happens automatically when
     # you start making requests.
     def connect
+      @bootstrap_timer ||= setup_bootstrap_timer do
+        start_bootstrap if @bootstrap_state == :not_started || @bootstrap_state == :failed
+      end
       start_bootstrap if @bootstrap_state == :not_started
       @bootstrap
     end

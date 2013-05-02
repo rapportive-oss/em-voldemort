@@ -94,6 +94,7 @@ describe EM::Voldemort::Cluster do
       request1 = EM::DefaultDeferrable.new
       connection1 = double('connection attempt 1', :send_request => request1, :close => nil)
       EM::Voldemort::Connection.should_receive(:new).and_return(connection1)
+      @cluster.connect
       @bootstrap_timer.call
       EM.next_tick do
         request1.fail(EM::Voldemort::ServerError.new('connection refused'))
