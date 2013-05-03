@@ -15,9 +15,9 @@ module EM::Voldemort
     def load_config(xml)
       @persistence = xml.xpath('persistence').text
       @routing = xml.xpath('routing').text
-      @key_serializer = Serializer.new(xml.xpath('key-serializer').first)
+      @key_serializer = make_serializer(xml.xpath('key-serializer').first)
       @key_compressor = Compressor.new(xml.xpath('key-serializer/compression').first)
-      @value_serializer = Serializer.new(xml.xpath('value-serializer').first)
+      @value_serializer = make_serializer(xml.xpath('value-serializer').first)
       @value_compressor = Compressor.new(xml.xpath('value-serializer/compression').first)
     end
 
@@ -77,6 +77,24 @@ module EM::Voldemort
 
     def decode_value(value)
       @value_serializer.decode(@value_compressor.decode(value))
+    end
+
+    def make_serializer(xml)
+      if xml.xpath('type').text == 'json'
+        has_version_tag = true
+        schemas = xml.xpath('schema-info').each_with_object({}) do |schema, hash|
+          has_version_tag = false if schema['version'] == 'none'
+          hash[schema['version'].to_i] = schema.text
+        end
+        BinaryJson.new(schemas, has_version_tag)
+      else
+        NullSerializer.new
+      end
+    end
+
+    class NullSerializer
+      def encode(data); data; end
+      def decode(data); data; end
     end
   end
 end

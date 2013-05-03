@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'eventmachine'
   s.add_dependency 'beefcake'
   s.add_dependency 'nokogiri'
+  s.add_dependency 'json'
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'timecop'
