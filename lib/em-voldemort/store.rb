@@ -14,7 +14,7 @@ module EM::Voldemort
     # Internal
     def load_config(xml)
       @persistence = xml.xpath('persistence').text
-      @routing = xml.xpath('routing').text
+      @router = Router.new(xml.xpath('routing-strategy').text, xml.xpath('replication-factor').text.to_i)
       @key_serializer = make_serializer(xml.xpath('key-serializer').first)
       @key_compressor = Compressor.new(xml.xpath('key-serializer/compression').first)
       @value_serializer = make_serializer(xml.xpath('value-serializer').first)
@@ -55,7 +55,7 @@ module EM::Voldemort
         rescue => error
           deferrable.fail(error)
         else
-          request = @cluster.get(store_name, encoded_key)
+          request = @cluster.get(store_name, encoded_key, @router)
           request.errback {|error| deferrable.fail(error) }
 
           request.callback do |response|

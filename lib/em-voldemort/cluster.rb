@@ -2,7 +2,7 @@ module EM::Voldemort
   # A client for a Voldemort cluster. The cluster is initialized by giving the hostname and port of
   # one of its nodes, and the other nodes are autodiscovered.
   #
-  # TODO: The cluster should automatically route requests to the right node.
+  # TODO if one node is down, a request should be retried on a replica.
   class Cluster
     include Protocol
 
@@ -34,9 +34,9 @@ module EM::Voldemort
 
     # Fetches the value associated with a particular key in a particular store. Returns a deferrable
     # that succeeds with the value, or fails with an exception object.
-    def get(store_name, key)
+    def get(store_name, key, router=nil)
       when_ready do |deferrable|
-        get_from_connection(choose_connection(key), store_name, key, deferrable)
+        get_from_connection(choose_connection(key, router), store_name, key, deferrable)
       end
     end
 
@@ -119,7 +119,7 @@ module EM::Voldemort
       doc = Nokogiri::XML(cluster_xml)
       @cluster_name = doc.xpath('/cluster/name').text
       @node_by_id = {}
-      @nodes_by_partition = {}
+      @node_by_partition = {}
       doc.xpath('/cluster/server').each do |node|
         node_id = node.xpath('id').text
         connection = Connection.new(
@@ -128,10 +128,14 @@ module EM::Voldemort
           :logger => logger
         )
         @node_by_id[node_id] = connection
-        node.xpath('partitions').text.split(/\W+/).each do |partition|
-          @nodes_by_partition[partition] ||= []
-          @nodes_by_partition[partition] << connection
+        node.xpath('partitions').text.split(/\s*,\s*/).map(&:to_i).each do |partition|
+          raise "duplicate assignment of partition #{partition}" if @node_by_partition[partition]
+          @node_by_partition[partition] = connection
         end
+      end
+      raise 'no partitions defined on cluster' if @node_by_partition.empty?
+      (0...@node_by_partition.size).each do |partition|
+        raise "missing node assignment for partition #{partition}" unless @node_by_partition[partition]
       end
       @bootstrap_state = :cluster_info_ok
     rescue => e
@@ -152,9 +156,13 @@ module EM::Voldemort
       @bootstrap_state = :failed
     end
 
-    def choose_connection(key)
-      # TODO route to the right node, based on key
-      @node_by_id.values.first
+    def choose_connection(key, router=nil)
+      if router
+        partitions = router.partitions(key, @node_by_partition)
+        @node_by_partition[partitions.first]
+      else
+        @node_by_id.values.sample # choose a random connection
+      end
     end
 
     # Makes a 'get' request for a particular key to a particular Voldemort store, using a particular
