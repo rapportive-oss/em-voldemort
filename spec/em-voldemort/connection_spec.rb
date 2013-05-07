@@ -48,6 +48,7 @@ describe EM::Voldemort::Connection do
   it 'should negotiate the protocol at the start of the connection' do
     setup_connection do |handler|
       handler.state.should == :idle
+      @connection.health.should == :good
       EM.stop
     end
     EM.run { @connection.connect }
@@ -61,6 +62,7 @@ describe EM::Voldemort::Connection do
           handler.should_receive(:close_connection) { handler.unbind }
           handler.receive_data('no')
           handler.state.should == :disconnected
+          @connection.health.should == :bad
           EM.stop
         end
       end
@@ -72,9 +74,11 @@ describe EM::Voldemort::Connection do
     EM.run do
       EM.should_receive(:connect).once.and_raise(EventMachine::ConnectionError, 'unable to resolve server address')
       @connection.connect # first connection attempt
+      @connection.health.should == :bad
       later(2) # no reconnect only 2 seconds after first attempt
       setup_connection do |handler| # second attempt is successful
         handler.state.should == :idle
+        @connection.health.should == :good
         EM.stop
       end
       later(4) # 6 seconds after first attempt, status check timer has fired
@@ -99,7 +103,11 @@ describe EM::Voldemort::Connection do
       EM.next_tick do
         later(2) # no timeout after only 2 seconds
         handler.should_receive(:close_connection) { handler.unbind }
-        EM.should_receive(:connect) { EM.stop }
+        EM.should_receive(:connect) do
+          @connection.health.should == :bad
+          EM.stop
+          double('connection', :in_flight => EM::DefaultDeferrable.new)
+        end
         later(4) # 6 seconds after sending protocol request, give up
       end
     end
@@ -110,8 +118,12 @@ describe EM::Voldemort::Connection do
     setup_connection do |handler|
       later(16) # sit idle for a while
       handler.unbind 'connection reset by peer'
+      @connection.health.should == :bad
       later(2) # no reconnect only 2 seconds after disconnection
-      setup_connection { EM.stop }
+      setup_connection do
+        @connection.health.should == :good
+        EM.stop
+      end
       later(4) # 6 seconds after disconnection, status check timer has fired
     end
     EM.run { @connection.connect }
@@ -168,6 +180,7 @@ describe EM::Voldemort::Connection do
     expect_connect do |handler|
       handler.should_receive(:send_data).with('pb0')
       EM.next_tick do
+        @connection.health.should == :good
         @connection.send_request('request1')
         later(2)
         EM.next_tick do
@@ -184,9 +197,11 @@ describe EM::Voldemort::Connection do
       handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')).once
       @connection.send_request('request1').errback { EM.stop }
       later(2) # not timed out yet after 2 seconds
+      @connection.health.should == :good
       handler.should_receive(:close_connection) { handler.unbind }
-      EM.should_receive(:connect)
+      EM.should_receive(:connect).and_return(double('handler', :in_flight => EM::DefaultDeferrable.new))
       later(4) # after 6 seconds, should time out and call the errback
+      @connection.health.should == :bad
     end
     EM.run { @connection.connect }
   end
@@ -195,7 +210,9 @@ describe EM::Voldemort::Connection do
     setup_connection do |handler|
       later(16) # sit idle for a while
       handler.should_receive(:close_connection) { EM.next_tick { handler.unbind } }
-      @connection.close.callback { EM.stop }
+      deferrable = @connection.close
+      @connection.health.should == :bad
+      deferrable.callback { EM.stop }
     end
     EM.run { @connection.connect }
   end

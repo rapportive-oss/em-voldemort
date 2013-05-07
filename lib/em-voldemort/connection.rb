@@ -3,7 +3,7 @@ module EM::Voldemort
   # Automatically reconnects if the connection is lost, but does not automatically retry failed
   # requests (that is the cluster's job).
   class Connection
-    attr_reader :host, :port, :node_id, :protocol, :logger
+    attr_reader :host, :port, :node_id, :protocol, :logger, :health
 
     DEFAULT_PROTOCOL = 'pb0' # Voldemort's protobuf-based protocol
     STATUS_CHECK_PERIOD = 5 # Every 5 seconds, check on the health of the connection
@@ -15,6 +15,7 @@ module EM::Voldemort
       @node_id = options[:node_id]
       @protocol = options[:protocol] || DEFAULT_PROTOCOL
       @logger = options[:logger] || Logger.new($stdout)
+      @health = :good
     end
 
     # Establishes a connection to the node. Calling #connect is optional, since it also happens
@@ -46,6 +47,7 @@ module EM::Voldemort
       end
 
       @handler = FailHandler.new(self)
+      @health = :bad
       @closing_deferrable
     end
 
@@ -54,6 +56,7 @@ module EM::Voldemort
     def connection_closed(handler, reason=nil)
       logger.info ["Connection to Voldemort node #{host}:#{port} closed", reason].compact.join(': ')
       @handler = FailHandler.new(self) if handler.equal? @handler
+      @health = :bad
       @closing_deferrable.succeed if @closing_deferrable
     end
 
@@ -79,6 +82,7 @@ module EM::Voldemort
     def force_connect
       @timer ||= setup_status_check_timer(&method(:status_check))
       @handler = EM.connect(host, port, Handler, self)
+      @handler.in_flight.callback { @health = :good } # restore health if protocol negotiation succeeded
     rescue EventMachine::ConnectionError => e
       # A synchronous exception is typically thrown on DNS resolution failure
       logger.warn "Cannot connect to Voldemort node: #{e.class.name}: #{e.message}"
