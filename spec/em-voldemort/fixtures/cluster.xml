@@ -1,0 +1,323 @@
+<cluster>
+  <name>example-voldemort-cluster</name>
+  <server>
+    <id>0</id>
+    <host>voldemort00.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>14, 45, 240, 266, 271, 274, 288, 318, 342, 389, 393, 464, 492</partitions>
+  </server>
+  <server>
+    <id>1</id>
+    <host>voldemort01.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>38, 40, 46, 88, 93, 96, 103, 152, 325, 344, 354, 445, 531</partitions>
+  </server>
+  <server>
+    <id>2</id>
+    <host>voldemort02.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>5, 10, 98, 135, 176, 276, 305, 341, 449, 452, 473, 500, 509</partitions>
+  </server>
+  <server>
+    <id>3</id>
+    <host>voldemort03.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>18, 43, 92, 137, 144, 224, 239, 300, 334, 381, 401, 403, 412, 457</partitions>
+  </server>
+  <server>
+    <id>4</id>
+    <host>voldemort04.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>132, 219, 222, 299, 324, 374, 397, 409, 413, 421, 424, 442, 472, 501</partitions>
+  </server>
+  <server>
+    <id>5</id>
+    <host>voldemort05.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>47, 64, 158, 167, 226, 283, 315, 348, 350, 361, 366, 384, 430, 529</partitions>
+  </server>
+  <server>
+    <id>6</id>
+    <host>voldemort06.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>26, 117, 136, 194, 212, 225, 360, 407, 454, 475, 477, 479, 491, 530</partitions>
+  </server>
+  <server>
+    <id>7</id>
+    <host>voldemort07.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>73, 79, 95, 123, 129, 133, 142, 155, 187, 197, 205, 206, 471, 485</partitions>
+  </server>
+  <server>
+    <id>8</id>
+    <host>voldemort08.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>33, 66, 68, 80, 81, 86, 89, 102, 111, 193, 232, 298, 369, 488</partitions>
+  </server>
+  <server>
+    <id>9</id>
+    <host>voldemort09.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>159, 166, 209, 249, 273, 286, 308, 337, 353, 376, 410, 426, 495, 496</partitions>
+  </server>
+  <server>
+    <id>10</id>
+    <host>voldemort10.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>31, 125, 154, 174, 191, 221, 303, 309, 329, 394, 448, 498, 505, 522</partitions>
+  </server>
+  <server>
+    <id>11</id>
+    <host>voldemort11.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>23, 30, 59, 130, 289, 357, 358, 367, 446, 456, 466, 493, 533, 535</partitions>
+  </server>
+  <server>
+    <id>12</id>
+    <host>voldemort12.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>2, 50, 53, 138, 153, 215, 257, 262, 295, 349, 371, 386, 428, 502</partitions>
+  </server>
+  <server>
+    <id>13</id>
+    <host>voldemort13.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>71, 107, 146, 265, 277, 306, 326, 400, 463, 483, 494, 515, 518, 536</partitions>
+  </server>
+  <server>
+    <id>14</id>
+    <host>voldemort14.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>20, 24, 97, 179, 241, 287, 362, 364, 431, 470, 476, 484, 489, 538</partitions>
+  </server>
+  <server>
+    <id>15</id>
+    <host>voldemort15.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>94, 109, 116, 208, 227, 255, 280, 291, 351, 420, 439, 450, 510, 539</partitions>
+  </server>
+  <server>
+    <id>16</id>
+    <host>voldemort16.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>1, 4, 76, 242, 246, 250, 258, 297, 373, 392, 429, 467, 482, 521</partitions>
+  </server>
+  <server>
+    <id>17</id>
+    <host>voldemort17.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>29, 32, 57, 106, 149, 164, 199, 216, 263, 379, 411, 481, 519, 537</partitions>
+  </server>
+  <server>
+    <id>18</id>
+    <host>voldemort18.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>19, 22, 56, 100, 128, 156, 217, 245, 292, 370, 396, 415, 427, 527</partitions>
+  </server>
+  <server>
+    <id>19</id>
+    <host>voldemort19.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>21, 41, 62, 134, 186, 314, 333, 347, 372, 433, 443, 458, 513, 520</partitions>
+  </server>
+  <server>
+    <id>20</id>
+    <host>voldemort20.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>82, 143, 171, 177, 188, 231, 247, 251, 296, 368, 380, 416, 419, 506</partitions>
+  </server>
+  <server>
+    <id>21</id>
+    <host>voldemort21.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>16, 99, 112, 118, 120, 157, 168, 192, 204, 244, 440, 490, 499, 512</partitions>
+  </server>
+  <server>
+    <id>22</id>
+    <host>voldemort22.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>17, 101, 127, 182, 189, 198, 234, 278, 313, 319, 432, 434, 441, 534</partitions>
+  </server>
+  <server>
+    <id>23</id>
+    <host>voldemort23.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>52, 55, 63, 65, 69, 104, 126, 161, 321, 352, 461, 465, 526</partitions>
+  </server>
+  <server>
+    <id>24</id>
+    <host>voldemort24.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>48, 121, 148, 207, 210, 229, 248, 302, 408, 414, 478, 497, 523</partitions>
+  </server>
+  <server>
+    <id>25</id>
+    <host>voldemort25.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>12, 77, 108, 122, 150, 190, 202, 214, 293, 304, 330, 343, 525</partitions>
+  </server>
+  <server>
+    <id>26</id>
+    <host>voldemort26.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>61, 165, 172, 180, 195, 233, 252, 259, 267, 282, 346, 404, 438</partitions>
+  </server>
+  <server>
+    <id>27</id>
+    <host>voldemort27.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>75, 90, 114, 139, 162, 163, 223, 310, 336, 355, 398, 437, 511</partitions>
+  </server>
+  <server>
+    <id>28</id>
+    <host>voldemort28.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>6, 7, 36, 39, 105, 254, 365, 423, 451, 468, 486, 507, 524</partitions>
+  </server>
+  <server>
+    <id>29</id>
+    <host>voldemort29.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>3, 49, 72, 84, 85, 181, 213, 236, 281, 311, 382, 388, 405</partitions>
+  </server>
+  <server>
+    <id>30</id>
+    <host>voldemort30.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>27, 37, 78, 185, 196, 201, 238, 269, 294, 316, 335, 377, 418</partitions>
+  </server>
+  <server>
+    <id>31</id>
+    <host>voldemort31.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>0, 11, 113, 119, 151, 183, 284, 345, 383, 399, 474, 487, 514</partitions>
+  </server>
+  <server>
+    <id>32</id>
+    <host>voldemort32.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>9, 54, 140, 211, 230, 301, 323, 327, 331, 359, 385, 453, 503</partitions>
+  </server>
+  <server>
+    <id>33</id>
+    <host>voldemort33.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>124, 175, 184, 235, 237, 264, 307, 322, 332, 339, 340, 435, 469</partitions>
+  </server>
+  <server>
+    <id>34</id>
+    <host>voldemort34.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>91, 170, 173, 178, 268, 285, 328, 338, 378, 387, 390, 444, 480</partitions>
+  </server>
+  <server>
+    <id>35</id>
+    <host>voldemort35.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>13, 15, 44, 141, 220, 228, 275, 320, 356, 436, 460, 462, 517</partitions>
+  </server>
+  <server>
+    <id>36</id>
+    <host>voldemort36.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>25, 35, 70, 74, 253, 261, 270, 425, 447, 459, 504, 508, 516</partitions>
+  </server>
+  <server>
+    <id>37</id>
+    <host>voldemort37.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>60, 67, 83, 131, 145, 147, 243, 260, 290, 375, 395, 417, 528</partitions>
+  </server>
+  <server>
+    <id>38</id>
+    <host>voldemort38.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>42, 58, 115, 169, 200, 203, 256, 279, 312, 317, 391, 422, 455</partitions>
+  </server>
+  <server>
+    <id>39</id>
+    <host>voldemort39.example.com</host>
+    <http-port>8081</http-port>
+    <socket-port>6666</socket-port>
+    <admin-port>6667</admin-port>
+    <partitions>8, 28, 34, 51, 87, 110, 160, 218, 272, 363, 402, 406, 532</partitions>
+  </server>
+</cluster>
