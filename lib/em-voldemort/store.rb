@@ -3,9 +3,17 @@ module EM::Voldemort
   # values.
   class Store
 
-    attr_reader :store_name
+    attr_reader :cluster, :store_name
 
-    # Internal -- don't call this from application code. Use {Cluster#store} instead.
+    # Creates a new store client from a URL like voldemort://node0.example.com:6666/store-name
+    def self.from_url(url, options={})
+      url = URI.parse(url) if url.is_a?(String)
+      cluster = Cluster.new({:host => url.host, :port => url.port || 6666}.merge(options))
+      cluster.store(url.path.sub(%r{\A/}, ''))
+    end
+
+    # Internal -- don't call this from application code. Use {Cluster#store} or {Store.from_url}
+    # instead.
     def initialize(cluster, store_name)
       @cluster = cluster
       @store_name = store_name.to_s
