@@ -3,7 +3,7 @@ module EM::Voldemort
   # Automatically reconnects if the connection is lost, but does not automatically retry failed
   # requests (that is the cluster's job).
   class Connection
-    attr_reader :host, :port, :protocol, :logger
+    attr_reader :host, :port, :node_id, :protocol, :logger
 
     DEFAULT_PROTOCOL = 'pb0' # Voldemort's protobuf-based protocol
     STATUS_CHECK_PERIOD = 5 # Every 5 seconds, check on the health of the connection
@@ -12,6 +12,7 @@ module EM::Voldemort
     def initialize(options={})
       @host = options[:host] or raise ArgumentError, "#{self.class.name} requires :host"
       @port = options[:port] or raise ArgumentError, "#{self.class.name} requires :port"
+      @node_id = options[:node_id]
       @protocol = options[:protocol] || DEFAULT_PROTOCOL
       @logger = options[:logger] || Logger.new($stdout)
       @timer = setup_status_check_timer(&method(:status_check))

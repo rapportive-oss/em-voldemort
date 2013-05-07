@@ -123,10 +123,11 @@ module EM::Voldemort
       @node_by_id = {}
       @node_by_partition = {}
       doc.xpath('/cluster/server').each do |node|
-        node_id = node.xpath('id').text
+        node_id = node.xpath('id').text.to_i
         connection = Connection.new(
           :host => node.xpath('host').text,
           :port => node.xpath('socket-port').text.to_i,
+          :node_id => node_id,
           :logger => logger
         )
         @node_by_id[node_id] = connection

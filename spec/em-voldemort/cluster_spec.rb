@@ -110,7 +110,7 @@ describe EM::Voldemort::Cluster do
   it 'should request cluster.xml and stores.xml when bootstrapping' do
     expect_bootstrap('voldemort0.example.com' => [0])
     EM::Voldemort::Connection.should_receive(:new).
-      with(:host => 'voldemort0.example.com', :port => 6666, :logger => @logger).
+      with(:host => 'voldemort0.example.com', :port => 6666, :node_id => 0, :logger => @logger).
       and_return(double('Connection 0'))
     EM.run { @cluster.connect.callback { EM.stop } }
   end
@@ -118,10 +118,10 @@ describe EM::Voldemort::Cluster do
   it 'should make a connection to each node in the cluster' do
     expect_bootstrap('voldemort0.example.com' => [0, 1, 2, 3], 'voldemort1.example.com' => [4, 5, 6, 7])
     EM::Voldemort::Connection.should_receive(:new).
-      with(:host => 'voldemort0.example.com', :port => 6666, :logger => @logger).
+      with(:host => 'voldemort0.example.com', :port => 6666, :node_id => 0, :logger => @logger).
       and_return(double('Connection 0'))
     EM::Voldemort::Connection.should_receive(:new).
-      with(:host => 'voldemort1.example.com', :port => 6666, :logger => @logger).
+      with(:host => 'voldemort1.example.com', :port => 6666, :node_id => 1, :logger => @logger).
       and_return(double('Connection 1'))
     EM.run { @cluster.connect.callback { EM.stop } }
   end
@@ -144,7 +144,7 @@ describe EM::Voldemort::Cluster do
             request2.fail(EM::Voldemort::ServerError.new('connection refused'))
             EM.next_tick do
               EM::Voldemort::Connection.should_receive(:new).
-                with(:host => 'voldemort0.example.com', :port => 6666, :logger => @logger).
+                with(:host => 'voldemort0.example.com', :port => 6666, :node_id => 0, :logger => @logger).
                 and_return(double('Connection 0'))
               expect_bootstrap('voldemort0.example.com' => [0]) { EM.stop }
               @timer_double.should_receive(:cancel)
