@@ -46,6 +46,7 @@ will be contacted to discover the other nodes and the configuration of the store
 You get the store object from the cluster (you can do this during the initialization of your app --
 EventMachine doesn't need to be running yet):
 
+    require 'em-voldemort'
     MY_VOLDEMORT_CLUSTER = EM::Voldemort::Cluster.new(:host => 'voldemort.example.com', :port => 6666)
     MY_VOLDEMORT_STORE = MY_VOLDEMORT_CLUSTER.store('my_store')
 
