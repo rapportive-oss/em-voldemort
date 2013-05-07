@@ -70,6 +70,8 @@ module EM::Voldemort
             @bootstrap_state = :failed
             finish_bootstrap
           end
+        else
+          finish_bootstrap
         end
       end
 

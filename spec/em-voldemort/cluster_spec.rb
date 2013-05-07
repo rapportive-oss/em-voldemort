@@ -199,4 +199,15 @@ describe EM::Voldemort::Cluster do
       end
     end
   end
+
+  it 'should handle invalid XML responses' do
+    bootstrap = double('bootstrap connection', :close => nil)
+    EM::Voldemort::Connection.should_receive(:new).and_return(bootstrap)
+    cluster_request = EM::DefaultDeferrable.new
+    bootstrap.should_receive(:send_request).with(request('metadata', 'cluster.xml')) do
+      EM.next_tick { cluster_request.succeed(success_response("<xml>Ceci n'est pas XML.</xml>")) }
+      cluster_request
+    end
+    EM.run { @cluster.connect.errback { EM.stop } }
+  end
 end
