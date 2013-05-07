@@ -15,7 +15,6 @@ module EM::Voldemort
       @node_id = options[:node_id]
       @protocol = options[:protocol] || DEFAULT_PROTOCOL
       @logger = options[:logger] || Logger.new($stdout)
-      @timer = setup_status_check_timer(&method(:status_check))
     end
 
     # Establishes a connection to the node. Calling #connect is optional, since it also happens
@@ -78,6 +77,7 @@ module EM::Voldemort
     end
 
     def force_connect
+      @timer ||= setup_status_check_timer(&method(:status_check))
       @handler = EM.connect(host, port, Handler, self)
     rescue EventMachine::ConnectionError => e
       # A synchronous exception is typically thrown on DNS resolution failure
