@@ -108,7 +108,10 @@ describe EM::Voldemort::Cluster do
 
 
   it 'should request cluster.xml and stores.xml when bootstrapping' do
-    expect_bootstrap
+    expect_bootstrap('voldemort0.example.com' => [0])
+    EM::Voldemort::Connection.should_receive(:new).
+      with(:host => 'voldemort0.example.com', :port => 6666, :logger => @logger).
+      and_return(double('Connection 0'))
     EM.run { @cluster.connect.callback { EM.stop } }
   end
 
@@ -140,7 +143,10 @@ describe EM::Voldemort::Cluster do
           EM.next_tick do
             request2.fail(EM::Voldemort::ServerError.new('connection refused'))
             EM.next_tick do
-              expect_bootstrap { EM.stop }
+              EM::Voldemort::Connection.should_receive(:new).
+                with(:host => 'voldemort0.example.com', :port => 6666, :logger => @logger).
+                and_return(double('Connection 0'))
+              expect_bootstrap('voldemort0.example.com' => [0]) { EM.stop }
               @timer_double.should_receive(:cancel)
               @bootstrap_timer.call
             end
