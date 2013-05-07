@@ -160,7 +160,7 @@ describe EM::Voldemort::Cluster do
     metadata_request = EM::DefaultDeferrable.new
     bootstrap = double('bootstrap connection', :send_request => metadata_request, :close => nil)
     EM::Voldemort::Connection.should_receive(:new).and_return(bootstrap)
-    connection = double('connection')
+    connection = double('connection', :health => :good)
     EM::Voldemort::Connection.should_receive(:new).and_return(connection)
     EM.run do
       @cluster.get('store1', 'request1').callback {|response| @response1 = response }
@@ -209,5 +209,132 @@ describe EM::Voldemort::Cluster do
       cluster_request
     end
     EM.run { @cluster.connect.errback { EM.stop } }
+  end
+
+
+  describe 'handling unavailable nodes' do
+    before do
+      expect_bootstrap('node0' => [0, 1, 2, 3], 'node1' => [4, 5, 6, 7])
+      @conn0 = double('connection 0')
+      @conn1 = double('connection 1')
+      EM::Voldemort::Connection.should_receive(:new).with(hash_including(:host => 'node0')).and_return(@conn0)
+      EM::Voldemort::Connection.should_receive(:new).with(hash_including(:host => 'node1')).and_return(@conn1)
+    end
+
+    it 'should only make a request to one connection if it is healthy' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:good)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick { request1.succeed(success_response('response1')) }
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).callback do |response|
+          response.should == 'response1'
+          EM.stop
+        end
+      end
+    end
+
+    it 'should retry a request on another connection if the first request failed' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:good)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick do
+              @conn1.should_receive(:send_request).with(request('store', 'request')) do
+                EM::DefaultDeferrable.new.tap do |request2|
+                  EM.next_tick { request2.succeed(success_response('response2')) }
+                end
+              end
+              request1.fail(EM::Voldemort::ServerError.new('connection closed'))
+            end
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).callback do |response|
+          response.should == 'response2'
+          EM.stop
+        end
+      end
+    end
+
+    it 'should fail the request if all attempts fail' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:good)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick do
+              @conn1.should_receive(:send_request).with(request('store', 'request')) do
+                EM::DefaultDeferrable.new.tap do |request2|
+                  EM.next_tick { request2.fail(EM::Voldemort::ServerError.new('no route to host')) }
+                end
+              end
+              request1.fail(EM::Voldemort::ServerError.new('connection timed out'))
+            end
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).errback do |error|
+          error.should be_a(EM::Voldemort::ServerError)
+          error.message.should == 'no route to host'
+          EM.stop
+        end
+      end
+    end
+
+    it 'should not retry requests that failed due to client error' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:good)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick { request1.succeed('') } # empty response = no value for that key
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).errback do |error|
+          error.should be_a(EM::Voldemort::KeyNotFound)
+          EM.stop
+        end
+      end
+    end
+
+    it 'should keep trying to make requests to a node that is down' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:bad)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick { request1.fail(EM::Voldemort::ServerError.new('not connected')) }
+          end
+        end
+        @conn1.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request2|
+            EM.next_tick { request2.succeed(success_response('response2')) }
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).callback do |response|
+          response.should == 'response2'
+          EM.stop
+        end
+      end
+    end
+
+    it 'should fail the request if all nodes are down' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:bad)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick { request1.fail(EM::Voldemort::ServerError.new('not connected')) }
+          end
+        end
+        @conn1.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request2|
+            EM.next_tick { request2.fail(EM::Voldemort::ServerError.new('not connected')) }
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).errback do |error|
+          error.should be_a(EM::Voldemort::ServerError)
+          error.message.should == 'not connected'
+          EM.stop
+        end
+      end
+    end
   end
 end

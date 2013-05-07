@@ -36,7 +36,18 @@ module EM::Voldemort
     # that succeeds with the value, or fails with an exception object.
     def get(store_name, key, router=nil)
       when_ready do |deferrable|
-        get_from_connection(choose_connection(key, router), store_name, key, deferrable)
+        connections = choose_connections(key, router)
+        if connections.size == 0
+          deferrable.fail(ServerError.new('No connection can handle the request'))
+        elsif connections.first.health == :good
+          # Send the request to the preferred node, but fall back to others if it fails.
+          get_in_sequence(connections, store_name, key, deferrable)
+        else
+          # The request to the first node will probably fail, but we send it anyway, so that the
+          # connection can discover when the node comes back up. Make the request to other
+          # connections at the same time to avoid delaying the request.
+          get_in_parallel(connections, store_name, key, deferrable)
+        end
       end
     end
 
@@ -159,12 +170,53 @@ module EM::Voldemort
       @bootstrap_state = :failed
     end
 
-    def choose_connection(key, router=nil)
+    def choose_connections(key, router=nil)
       if router
-        partitions = router.partitions(key, @node_by_partition)
-        @node_by_partition[partitions.first]
+        router.partitions(key, @node_by_partition).map do |partition|
+          @node_by_partition[partition]
+        end.compact
       else
-        @node_by_id.values.sample # choose a random connection
+        @node_by_id.values.sample(2) # choose two random connections
+      end
+    end
+
+    # Makes a 'get' request to the first connection in the given list of connections. If the request
+    # fails with a ServerError, retries the request on the next connection in the list, etc,
+    # eventually failing if none of the connections can successfully handle the request.
+    def get_in_sequence(connections, store_name, key, deferrable)
+      raise ArgumentError, 'connections must not be empty' if connections.empty?
+      request = get_from_connection(connections.first, store_name, key)
+      request.callback {|response| deferrable.succeed(response) }
+      request.errback do |error|
+        if error.is_a?(ServerError) && connections.size > 1
+          get_in_sequence(connections.drop(1), store_name, key, deferrable)
+        else
+          deferrable.fail(error)
+        end
+      end
+    end
+
+    # Makes a 'get' request to all given connections in parallel. Succeeds with the first successful
+    # response, or fails if all connections' requests fail.
+    def get_in_parallel(connections, store_name, key, deferrable)
+      raise ArgumentError, 'connections must not be empty' if connections.empty?
+      responses = 0
+      done = false
+      connections.each do |connection|
+        request = get_from_connection(connection, store_name, key)
+        request.callback do |response|
+          deferrable.succeed(response) unless done
+          done = true
+        end
+        request.errback do |error|
+          if error.is_a?(ClientError) && !done
+            deferrable.fail(error)
+            done = true
+          elsif !done
+            responses += 1
+            deferrable.fail(error) if responses == connections.size
+          end
+        end
       end
     end
 
