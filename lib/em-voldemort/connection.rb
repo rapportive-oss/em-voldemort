@@ -161,11 +161,11 @@ module EM::Voldemort
           @state = :idle
           @in_flight = nil
           if data == 'ok'
-            deferrable.succeed
             send_next_request
+            deferrable.succeed
           else
-            deferrable.fail("server response: #{data.inspect}")
             close_connection
+            deferrable.fail("server response: #{data.inspect}")
           end
 
         when :request
@@ -176,8 +176,8 @@ module EM::Voldemort
             deferrable = @in_flight
             @state = :idle
             @in_flight = @recv_buf = nil
-            deferrable.succeed(response)
             send_next_request
+            deferrable.succeed(response)
           end
 
         else
@@ -188,12 +188,12 @@ module EM::Voldemort
       # Connection is asking us to shut down. Wait for the currently in-flight request to complete,
       # but fail any unsent requests in the queue.
       def close_gracefully
+        @request_queue.each {|request, deferrable| deferrable.fail(ServerError.new('shutdown requested')) }
+        @request_queue = []
         if in_flight
-          in_flight.callback { close_gracefully }
-          in_flight.errback  { close_gracefully }
+          in_flight.callback { close_connection }
+          in_flight.errback  { close_connection }
         else
-          @request_queue.each {|request, deferrable| deferrable.fail(ServerError.new('shutdown requested')) }
-          @request_queue = []
           close_connection
         end
       end

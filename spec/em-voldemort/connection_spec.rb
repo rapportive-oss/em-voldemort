@@ -147,8 +147,8 @@ describe EM::Voldemort::Connection do
     EM.run { @connection.connect }
   end
 
-  it 'should queue up requests made before the previous request returns' do
-    setup_connection do |handler|
+  describe 'queueing requests' do
+    def three_queued_requests(handler)
       handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')).once do
         EM.next_tick do
           handler.should_receive(:send_data).with([8, 'request2'].pack('NA*')).once do
@@ -164,32 +164,55 @@ describe EM::Voldemort::Connection do
           handler.receive_data([9, 'response1'].pack('NA*'))
         end
       end
-      @connection.send_request('request1').callback {|response| @response1 = response }
-      @connection.send_request('request2').callback {|response| @response2 = response }
-      @connection.send_request('request3').callback do |response|
-        @response1.should == 'response1'
-        @response2.should == 'response2'
-        response.should == 'response3'
-        EM.stop
-      end
     end
-    EM.run { @connection.connect }
-  end
 
-  it 'should queue up requests made while protocol negotiation is in progress' do
-    expect_connect do |handler|
-      handler.should_receive(:send_data).with('pb0')
-      EM.next_tick do
-        @connection.health.should == :good
-        @connection.send_request('request1')
-        later(2)
-        EM.next_tick do
-          handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')) { EM.stop }
-          handler.receive_data('ok')
+    it 'should queue up requests made before the previous request returns' do
+      setup_connection do |handler|
+        three_queued_requests(handler)
+        @connection.send_request('request1').callback {|response| @response1 = response }
+        @connection.send_request('request2').callback {|response| @response2 = response }
+        @connection.send_request('request3').callback do |response|
+          @response1.should == 'response1'
+          @response2.should == 'response2'
+          response.should == 'response3'
+          EM.stop
         end
       end
+      EM.run { @connection.connect }
     end
-    EM.run { @connection.connect }
+
+    it 'should queue up requests made in the callback of a previous response' do
+      setup_connection do |handler|
+        three_queued_requests(handler)
+        @connection.send_request('request1').callback do |response1|
+          response1.should == 'response1'
+          @connection.send_request('request2').callback do |response2|
+            response2.should == 'response2'
+          end
+          @connection.send_request('request3').callback do |response2|
+            response2.should == 'response3'
+            EM.stop
+          end
+        end
+      end
+      EM.run { @connection.connect }
+    end
+
+    it 'should queue up requests made while protocol negotiation is in progress' do
+      expect_connect do |handler|
+        handler.should_receive(:send_data).with('pb0')
+        EM.next_tick do
+          @connection.health.should == :good
+          @connection.send_request('request1')
+          later(2)
+          EM.next_tick do
+            handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')) { EM.stop }
+            handler.receive_data('ok')
+          end
+        end
+      end
+      EM.run { @connection.connect }
+    end
   end
 
   it 'should close the connection and reconnect if a request takes too long' do
