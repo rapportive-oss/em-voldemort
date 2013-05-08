@@ -50,6 +50,12 @@ describe EM::Voldemort::Router do
     @router.partitions('long' * 10_000, @node_by_partition).should == [41, 42]
   end
 
+  it 'should route a key whose hash is -2**31' do
+    # This tests a special case in voldemort.routing.ConsistentRoutingStrategy.abs which ensures
+    # that we always take a positive value mod number of partitions
+    @router.partitions([2, 87, 150, 223, 77].pack('C*'), @node_by_partition).should == [307, 308]
+  end
+
   it 'should route to replicas on different nodes' do
     reconfigured_partitions = {
       0 => @node_by_partition[14], # node 0
