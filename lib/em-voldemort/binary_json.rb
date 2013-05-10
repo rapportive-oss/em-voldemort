@@ -123,7 +123,7 @@ module EM::Voldemort
 
     def write_int16(object, bytes)
       if object.nil?
-        bytes << [SHORT_MIN_VAL].pack('c')
+        bytes << [SHORT_MIN_VAL].pack('n')
       elsif object > SHORT_MIN_VAL && object <= SHORT_MAX_VAL
         bytes << [object].pack('n')
       else
@@ -177,9 +177,9 @@ module EM::Voldemort
 
     def write_length(length, bytes)
       if length < SHORT_MAX_VAL
-        write_int16(length, bytes)
+        bytes << [length].pack('n')
       elsif length < STRING_MAX_LEN
-        write_int32(length | 0xC0000000, bytes)
+        bytes << [length | 0xC0000000].pack('N')
       else
         raise ClientError, 'string is too long to be serialized'
       end
@@ -257,7 +257,7 @@ module EM::Voldemort
       size = input.read(2).unpack('n').first
       if size == 0xFFFF
         -1
-      elsif size & 0xC000 > 0
+      elsif size & 0x8000 > 0
         (size & 0x3FFF) << 16 | input.read(2).unpack('n').first
       else
         size
