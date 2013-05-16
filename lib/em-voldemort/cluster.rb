@@ -229,8 +229,12 @@ module EM::Voldemort
       request.callback do |response|
         begin
           parsed_response = get_response(response)
-        rescue => error
+        rescue ClientError => error
           deferrable.fail(error)
+        rescue => error
+          message = "protocol error #{error.class}: #{error.message} while parsing response: #{response.inspect}"
+          logger.error(message)
+          deferrable.fail(ServerError.new(message))
         else
           deferrable.succeed(parsed_response)
         end

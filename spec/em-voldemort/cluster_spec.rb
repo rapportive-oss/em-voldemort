@@ -296,6 +296,29 @@ describe EM::Voldemort::Cluster do
       end
     end
 
+    it 'should retry a request on another connection if parsing the first response failed' do
+      EM.run do
+        @conn0.should_receive(:health).and_return(:good)
+        @conn0.should_receive(:send_request).with(request('store', 'request')) do
+          EM::DefaultDeferrable.new.tap do |request1|
+            EM.next_tick do
+              @conn1.should_receive(:send_request).with(request('store', 'request')) do
+                EM::DefaultDeferrable.new.tap do |request2|
+                  EM.next_tick { request2.succeed(success_response('response2')) }
+                end
+              end
+              @logger.should_receive(:error).with(/protocol error/)
+              request1.succeed("\x00") # not valid protobuf
+            end
+          end
+        end
+        @cluster.get('store', 'request', double('router', :partitions => [2, 4])).callback do |response|
+          response.should == 'response2'
+          EM.stop
+        end
+      end
+    end
+
     it 'should keep trying to make requests to a node that is down' do
       EM.run do
         @conn0.should_receive(:health).and_return(:bad)
