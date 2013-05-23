@@ -147,6 +147,22 @@ describe EM::Voldemort::Connection do
     EM.run { @connection.connect }
   end
 
+  it 'should reassemble responses split across multiple packets' do
+    setup_connection do |handler|
+      handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')).once do
+        EM.next_tick do
+          handler.receive_data([9, 'respon'].pack('NA*'))
+          EM.next_tick { handler.receive_data('se1') }
+        end
+      end
+      @connection.send_request('request1').callback do |response|
+        response.should == 'response1'
+        EM.stop
+      end
+    end
+    EM.run { @connection.connect }
+  end
+
   describe 'queueing requests' do
     def three_queued_requests(handler)
       handler.should_receive(:send_data).with([8, 'request1'].pack('NA*')).once do

@@ -170,8 +170,8 @@ module EM::Voldemort
 
         when :request
           @recv_buf << data
-          response_size = @recv_buf.unpack('N').first || 0
-          if @recv_buf.bytesize >= response_size
+          response_size = @recv_buf.unpack('N').first
+          if response_size && @recv_buf.bytesize >= response_size + 4
             response = @recv_buf[4, response_size]
             deferrable = @in_flight
             @state = :idle
