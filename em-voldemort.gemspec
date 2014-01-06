@@ -20,6 +20,4 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rspec'
   s.add_development_dependency 'timecop'
-  s.add_development_dependency 'pry-rescue'
-  s.add_development_dependency 'pry-stack_explorer'
 end
