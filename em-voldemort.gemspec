@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.name = 'em-voldemort'
   s.authors = ['Martin Kleppmann']
   s.email = 'martin@kleppmann.com'
-  s.version = '0.1.4'
+  s.version = '0.1.5'
   s.summary = %q{Client for Voldemort}
   s.description = %q{EventMachine implementation of a Voldemort client. Currently limited to read-only stores.}
   s.homepage = 'https://github.com/rapportive-oss/em-voldemort'
